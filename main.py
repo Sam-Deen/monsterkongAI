@@ -10,3 +10,4 @@ for _ in range(1000): # for the first 1000 frames
         env.reset_game() # reset game
     action = env.getActionSet()[0]  # choose  first action in array of all possible actions, in this case a
     env.act(action) # do that action in the game
+

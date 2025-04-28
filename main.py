@@ -1,13 +1,43 @@
 from ple.games.monsterkong import MonsterKong
 from ple import PLE
+from qlearning_agent import QLearningAgent
 
-game = MonsterKong() # create new game instance
-env = PLE(game, display_screen=True) # create new environment that the game will live in with display on
-env.init() # start the game
 
-for _ in range(1000): # for the first 1000 frames
-    if env.game_over(): # check if the player died
-        env.reset_game() # reset game
-    action = env.getActionSet()[0]  # choose  first action in array of all possible actions, in this case a
-    env.act(action) # do that action in the game
+def run_monsterkong():
+    game = MonsterKong()
+    env = PLE(game, display_screen=True)
+    env.init()
+    actions = env.getActionSet()
+    print(f"Available actions: {actions}")
 
+    # Initialize agent (but without learning)
+    agent = QLearningAgent(
+        action_space=actions,
+        downsample_size=(64, 64)  # Downsample to 64x64 for efficiency
+    )
+
+    # Run for a set number of steps or until game over
+    for _ in range(5000):
+        if env.game_over():  # Check if the game is over
+            env.reset_game()  # Reset the game if it's over
+
+        frame = env.getScreenRGB()  # Get the current screen as an RGB image
+
+        # Get action from the agent (without learning)
+        action = agent.act(frame)
+        print(f"Action chosen: {action}")
+
+        # Perform the action in the environment
+        reward = env.act(action)
+        print(f"Reward: {reward}")
+
+        # Optionally, visualize or log the state, action, and reward
+        # No learning happening here, agent is simply acting
+
+
+def main():
+    run_monsterkong()
+
+
+if __name__ == '__main__':
+    main()

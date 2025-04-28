@@ -19,15 +19,18 @@ class QLearningAgent:
         self.q_table = {}
 
     def preprocess(self, image):
-        """Turn image into grayscale image, shrink size, and flatten"""
+        """shrink size, and flatten"""
 
-        # make image bw
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # try to turn image into numpy array
+        if not isinstance(image, np.ndarray):
+            image = np.array(image)
+        if np.max(image) == 0:
+            print("Warning: Empty (all black) frame detected!")
+            return tuple(image.flatten())
 
         # shrink image to set size, def 42x42
         target_h, target_w = self.downsample_size
         image = cv2.resize(image, (target_w, target_h), interpolation=cv2.INTER_AREA)
-
         # flatten image into 1d array
         state = tuple(image.flatten())
         return state
@@ -70,7 +73,7 @@ class QLearningAgent:
 
     def get_action_index(self, action_key):
         """Find action index given a key."""
-        for idx, key in self.action_space.items():
-            if key == action_key:
-                return idx
-        raise ValueError(f"Invalid action key: {action_key}")
+        if action_key in self.action_space:
+            return self.action_space.index(action_key)
+        else:
+            raise ValueError(f"Invalid action key: {action_key}")

@@ -14,13 +14,14 @@ def train_monsterkong():
     env = PLE(game, display_screen=True, reward_values=rewards)
     env.init()
     actions = env.getActionSet()
+
     print(f"Available actions: {actions}")
     # Initialize agent
     agent = DQNAgent(#QLearningAgent(
         action_space=actions,
         downsample_size=(32, 32)  # Downsample to 42x42 for efficiency (will change when home with desktop)
     )
-    max_frames = 1
+    max_frames = 1000
     episode = 0
     # Run for a set number of steps or until game over
     while True:
@@ -55,6 +56,8 @@ def train_monsterkong():
             state = next_state
             total_reward += reward
             frame_count += 1
+            print(f"State: {env.getGameState()}")
+
             if frame_count >= max_frames:
                 done = True
                 env.reset_game()

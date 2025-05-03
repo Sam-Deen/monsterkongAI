@@ -2,6 +2,8 @@ from ple.games.monsterkong import MonsterKong
 from ple import PLE
 from qlearning_agent import QLearningAgent
 from dqn_agent import DQNAgent
+import numpy as np
+
 rewards = {
     "positive": 5,
     "win": 100,
@@ -28,8 +30,15 @@ def train_monsterkong():
         if env.game_over():  # Check if the game is over
             env.reset_game()  # Reset the game if it's over
 
-        frame = env.getScreenGrayscale()  # Get the current screen as a greyscale image
-        state = agent.preprocess(frame)  # Preprocess the frame into a workable state
+        # Get initial state
+        frame = env.getScreenGrayscale()
+        state = agent.preprocess(frame)
+        game_state = env.getGameState()
+        player_y = game_state['player_y']
+        prev_y = player_y
+
+        # Combine visual and scalar info
+        state = np.append(state, player_y)
 
         done = False
         total_reward = 0
@@ -43,8 +52,22 @@ def train_monsterkong():
             reward = env.act(action)  # Perform the action and get reward
 
             # Step 3: Get the next state and preprocess it
-            next_frame = env.getScreenRGB()  # Get the next screen
-            next_state = agent.preprocess(next_frame)  # Preprocess the next state
+            next_frame = env.getScreenGrayscale()
+            next_state = agent.preprocess(next_frame)
+            game_state = env.getGameState()
+            current_y = game_state['player_y']
+
+            # Movement reward shaping
+            delta_y = prev_y - current_y  # Positive if moved up
+            if delta_y > 0:
+                reward += 0.5  # Reward for going up
+            elif delta_y < 0:
+                reward -= 0.5  # Penalty for going down
+
+            prev_y = current_y
+
+            # Combine visual + position into next state
+            next_state = np.append(next_state, current_y)
 
             # Step 4: Check if the game is over
             done = env.game_over()
@@ -56,7 +79,6 @@ def train_monsterkong():
             state = next_state
             total_reward += reward
             frame_count += 1
-            print(f"State: {env.getGameState()}")
 
             if frame_count >= max_frames:
                 done = True

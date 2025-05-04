@@ -98,7 +98,7 @@ class Board(object):
         self.Walls = []
         self.Ladders = []
         self.Fireballs = []
-        self.FireballEndpoints = [OnBoard(self.IMAGES["still"], (50, 440))]
+        self.FireballEndpoints = [OnBoard(self.IMAGES["still"], (12, 440))]
         self.initializeGame()  # This initializes the game and generates our map
         self.createGroups()  # This creates the instance groups
 

@@ -60,9 +60,9 @@ def train_monsterkong():
             # Movement reward shaping
             delta_y = prev_y - current_y  # Positive if moved up
             if delta_y > 0:
-                reward += 0.5  # Reward for going up
+                reward += 0.05 * delta_y  # Reward for going up
             elif delta_y < 0:
-                reward -= 0.5  # Penalty for going down
+                reward -= 0.05 * abs(delta_y) # Penalty for going down
 
             prev_y = current_y
 

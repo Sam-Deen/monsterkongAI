@@ -201,8 +201,7 @@ class MonsterKong(PyGameWrapper):
                         "up"] and self.newGame.Players[0].onLadder:
                     self.newGame.Players[0].updateWH(self.IMAGES["still"], "V",
                                                      -self.newGame.Players[0].getSpeed() / 2, 15, 15)
-                    if len(self.newGame.Players[0].checkCollision(self.ladderGroup)) == 0 or len(
-                            self.newGame.Players[0].checkCollision(self.wallGroup)) != 0:
+                    if len( self.newGame.Players[0].checkCollision(self.wallGroup)) != 0:
                         self.newGame.Players[0].updateWH(self.IMAGES["still"], "V",
                                                          self.newGame.Players[0].getSpeed() / 2, 15, 15)
 

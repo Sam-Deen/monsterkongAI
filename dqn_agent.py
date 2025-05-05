@@ -24,7 +24,7 @@ class DQNAgent:
         self.target_model = DQN(4, self.action_size, state_size).to(device)
         self.update_target_model()
 
-        self.memory = deque(maxlen=500000)
+        self.memory = deque(maxlen=75000)
 
         # Hyperparameters
         self.gamma = 0.95  # Discount factor for future rewards

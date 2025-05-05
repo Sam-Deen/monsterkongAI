@@ -21,12 +21,20 @@ def preprocess_frame(frame, size):
 
 def train_agent(env, agent, episodes):
     for e in range(episodes):
-        state = preprocess_frame(env.getScreenGrayscale(), agent.state_size)
+        raw_frame = env.getScreenGrayscale()
+        preprocessed = preprocess_frame(raw_frame, agent.state_size)
+
+        agent.state_stack.clear()
+        for _ in range(agent.frame_stack):
+            agent.state_stack.append(preprocessed)
+
+        state = np.concatenate(agent.state_stack, axis=0)  # shape: (4, H, W)
+
         total_reward = 0
         best_y = env.getGameState()["player_y"]
         timer = 0
 
-        while not env.game_over() and timer < 500:
+        while not env.game_over() and timer < 900:
             action = agent.select_action(state)
             reward = env.act(action)
 
@@ -37,7 +45,11 @@ def train_agent(env, agent, episodes):
                 best_y = new_y
             reward += climb_reward
 
-            next_state = preprocess_frame(env.getScreenGrayscale(), agent.state_size)
+            raw_frame = env.getScreenGrayscale()
+            next_frame = preprocess_frame(raw_frame, agent.state_size)
+            agent.state_stack.append(next_frame)
+            next_state = np.concatenate(agent.state_stack, axis=0)
+
             done = env.game_over()
 
             agent.remember(state, action, reward, next_state, done)
@@ -45,8 +57,8 @@ def train_agent(env, agent, episodes):
             total_reward += reward
             timer += 1
             agent.replay()
-
-        agent.update_target_model()
+        if e % 10 == 0:
+            agent.update_target_model()
         env.reset_game()
         print(f"Episode {e + 1}/{episodes} - Total Reward: {total_reward:.2f}")
 
@@ -62,4 +74,4 @@ if __name__ == "__main__":
     if not torch.cuda.is_available():
         print("CUDA is not available, check torchvision installation")
     agent = DQNAgent(state_size, action_set, device)
-    train_agent(env, agent, episodes=1000)
+    train_agent(env, agent, episodes=1500)

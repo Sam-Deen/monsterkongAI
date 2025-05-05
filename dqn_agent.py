@@ -20,20 +20,23 @@ class DQNAgent:
         self.action_size = len(action_set)
 
         # Initialize the main Q-network and the target Q-network
-        self.model = DQN(1, self.action_size, state_size).to(device)
-        self.target_model = DQN(1, self.action_size, state_size).to(device)
+        self.model = DQN(4, self.action_size, state_size).to(device)
+        self.target_model = DQN(4, self.action_size, state_size).to(device)
         self.update_target_model()
 
-        self.memory = deque(maxlen=2000)
+        self.memory = deque(maxlen=500000)
 
         # Hyperparameters
         self.gamma = 0.95  # Discount factor for future rewards
         self.epsilon = 1.0  # Exploration rate (probability of random action)
-        self.epsilon_decay = 0.995  # Decay rate for epsilon
+        self.epsilon_decay = 0.999  # Decay rate for epsilon
         self.epsilon_min = 0.01  # Minimum epsilon (stopping point for decay)
         self.learning_rate = 0.001  # Learning rate for optimizer
         self.batch_size = 32  # Number of experiences to sample per training step
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+
+        self.frame_stack = 4  # number of frames to stack
+        self.state_stack = deque(maxlen=self.frame_stack)
 
     def update_target_model(self):
         # Copy weights from the main network to the target network

@@ -1,0 +1,5 @@
+numpy==2.2.5
+torch==2.5.1
+opencv-python==4.11.0.86
+pygame==2.6.1
+-e ./PyGame-Learning_enviroment

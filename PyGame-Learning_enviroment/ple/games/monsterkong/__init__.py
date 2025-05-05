@@ -93,16 +93,19 @@ class MonsterKong(PyGameWrapper):
 
         # Create fireballs as required, depending on the number of monsters in
         # our game at the moment
-        if self.fireballTimer == 0:
-            self.newGame.CreateFireball(
-                self.newGame.Enemies[0].getPosition(), 0)
-        elif len(self.newGame.Enemies) >= 2 and self.fireballTimer == 23:
-            self.newGame.CreateFireball(
-                self.newGame.Enemies[1].getPosition(), 1)
-        elif len(self.newGame.Enemies) >= 3 and self.fireballTimer == 46:
-            self.newGame.CreateFireball(
-                self.newGame.Enemies[2].getPosition(), 2)
-        self.fireballTimer = (self.fireballTimer + 1) % 70
+
+
+        # REMOVE COMMENT BELOW TO CREATE FIREBALL AGAIN
+        # if self.fireballTimer == 0:
+        #     self.newGame.CreateFireball(
+        #         self.newGame.Enemies[0].getPosition(), 0)
+        # elif len(self.newGame.Enemies) >= 2 and self.fireballTimer == 23:
+        #     self.newGame.CreateFireball(
+        #         self.newGame.Enemies[1].getPosition(), 1)
+        # elif len(self.newGame.Enemies) >= 3 and self.fireballTimer == 46:
+        #     self.newGame.CreateFireball(
+        #         self.newGame.Enemies[2].getPosition(), 2)
+        # self.fireballTimer = (self.fireballTimer + 1) % 70
 
         # Animate the coin
         for coin in self.coinGroup:

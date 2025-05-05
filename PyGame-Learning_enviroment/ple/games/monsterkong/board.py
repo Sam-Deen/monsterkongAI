@@ -138,7 +138,11 @@ class Board(object):
 
     # Randomly Generate coins in the level where there is a wall below the
     # coin so the player can reach it
+
     def GenerateCoins(self):
+        print('not generating coins...')
+
+    def __GenerateCoins(self):
         for i in range(6, len(self.map)):
             for j in range(len(self.map[i])):
                 if self.map[i][j] == 0 and ((i + 1 < len(self.map) and self.map[i + 1][j] == 1) or (

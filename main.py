@@ -24,8 +24,9 @@ def train_agent(env, agent, episodes):
         state = preprocess_frame(env.getScreenGrayscale(), agent.state_size)
         total_reward = 0
         best_y = env.getGameState()["player_y"]
+        timer = 0
 
-        while not env.game_over():
+        while not env.game_over() and timer < 500:
             action = agent.select_action(state)
             reward = env.act(action)
 
@@ -42,7 +43,7 @@ def train_agent(env, agent, episodes):
             agent.remember(state, action, reward, next_state, done)
             state = next_state
             total_reward += reward
-
+            timer += 1
             agent.replay()
 
         agent.update_target_model()

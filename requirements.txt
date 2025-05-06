@@ -1,5 +1,9 @@
 numpy==2.2.5
-torch==2.5.1
+torch~=2.7.0+cu128
 opencv-python==4.11.0.86
 pygame==2.6.1
 -e ./PyGame-Learning_enviroment
+ple~=0.0.1
+tqdm~=4.67.1
+pillow~=11.2.1
+setuptools~=80.1.0

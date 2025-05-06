@@ -39,6 +39,10 @@ def train_agent(env, agent, episodes):
             reward = env.act(action)
 
             new_y = env.getGameState()["player_y"]
+
+            if env.getGameState()['onladder']:
+                reward += 0.1
+
             climb_reward = 0
             if new_y < best_y:
                 climb_reward = (best_y - new_y) * 0.5

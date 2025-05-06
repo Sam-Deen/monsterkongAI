@@ -4,7 +4,7 @@ import cv2
 from dqn_agent import DQNAgent
 from ple import PLE
 from ple.games.monsterkong import MonsterKong
-
+import sys
 rewards = {
     "positive": 0,
     "win": 100,
@@ -63,8 +63,6 @@ def train_agent(env, agent, episodes):
             agent.replay()
         if e % 10 == 0:
             agent.update_target_model()
-        if e % 50 == 0:
-            agent.save("checkpoint")
 
         agent.decay_epsilon()
         env.reset_game()
@@ -83,11 +81,17 @@ if __name__ == "__main__":
     state_size = (99, 96)  # Any multiple of 33x32 block sizes
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if not torch.cuda.is_available():
-        print("CUDA is not available, check torchvision installation")
+        print("CUDA is not available, check torch installation")
     agent = DQNAgent(state_size, action_set, device)
     try:
         agent.load("checkpoint")
     except FileNotFoundError:
         print("No previous checkpoint found. Starting fresh.")
-
-    train_agent(env, agent, episodes=1500)
+    except RuntimeError:
+        print("Error decoding model, starting fresh.")
+    try:
+        train_agent(env, agent, episodes=1500)
+    except KeyboardInterrupt:
+        print("\n[INFO] KeyboardInterrupt detected. Saving...")
+        agent.save("checkpoint")
+        sys.exit(0)

@@ -76,6 +76,7 @@ class MonsterKong(PyGameWrapper):
         state = {}
         # Include the player's Y position
         state['player_y'] = self.player.rect.y
+        state['onladder'] = self.player.onLadder
         return state
 
     def getScore(self):

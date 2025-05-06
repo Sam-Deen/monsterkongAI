@@ -5,6 +5,7 @@ import torch.optim as optim
 from collections import deque
 import random
 from DQN import DQN
+import os
 
 
 class DQNAgent:
@@ -87,3 +88,23 @@ class DQNAgent:
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
+    def save(self, path="checkpoint"):
+        os.makedirs(path, exist_ok=True)
+        torch.save(self.model.state_dict(), os.path.join(path, "model.pth"))
+        torch.save(self.target_model.state_dict(), os.path.join(path, "target_model.pth"))
+        torch.save(self.optimizer.state_dict(), os.path.join(path, "optimizer.pth"))
+        torch.save({
+            "epsilon": self.epsilon,
+            "memory": list(self.memory)  # Save as list for compatibility
+        }, os.path.join(path, "meta.pth"))
+        print("Agent state saved.")
+
+    def load(self, path="checkpoint"):
+        self.model.load_state_dict(torch.load(os.path.join(path, "model.pth")))
+        self.target_model.load_state_dict(torch.load(os.path.join(path, "target_model.pth")))
+        self.optimizer.load_state_dict(torch.load(os.path.join(path, "optimizer.pth")))
+
+        meta = torch.load(os.path.join(path, "meta.pth"))
+        self.epsilon = meta["epsilon"]
+        self.memory = deque(meta["memory"], maxlen=self.memory.maxlen)
+        print("Agent state loaded.")

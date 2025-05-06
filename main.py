@@ -59,6 +59,9 @@ def train_agent(env, agent, episodes):
             agent.replay()
         if e % 10 == 0:
             agent.update_target_model()
+        if e % 50 == 0:
+            agent.save("checkpoint")
+
         env.reset_game()
         print(f"Episode {e + 1}/{episodes} - Total Reward: {total_reward:.2f}")
 
@@ -74,4 +77,9 @@ if __name__ == "__main__":
     if not torch.cuda.is_available():
         print("CUDA is not available, check torchvision installation")
     agent = DQNAgent(state_size, action_set, device)
+    try:
+        agent.load("checkpoint")
+    except FileNotFoundError:
+        print("No previous checkpoint found. Starting fresh.")
+
     train_agent(env, agent, episodes=1500)

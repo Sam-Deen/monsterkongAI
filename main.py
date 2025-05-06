@@ -66,8 +66,12 @@ def train_agent(env, agent, episodes):
         if e % 50 == 0:
             agent.save("checkpoint")
 
+        agent.decay_epsilon()
         env.reset_game()
-        print(f"Episode {e + 1}/{episodes} - Total Reward: {total_reward:.2f}")
+        print(f"Episode {e + 1}/{episodes} - "
+              f"Total Reward: {total_reward:.2f} | "
+              f"Epsilon: {agent.epsilon:.4f} | "
+              f"Memory: {len(agent.memory)}/{agent.memory.maxlen}")
 
 
 if __name__ == "__main__":

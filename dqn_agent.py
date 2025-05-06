@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -6,7 +8,7 @@ from collections import deque
 import random
 from DQN import DQN
 import os
-
+from tqdm import tqdm
 
 class DQNAgent:
     def __init__(self, state_size, action_set, device):
@@ -30,7 +32,7 @@ class DQNAgent:
         # Hyperparameters
         self.gamma = 0.95  # Discount factor for future rewards
         self.epsilon = 1.0  # Exploration rate (probability of random action)
-        self.epsilon_decay = 0.999  # Decay rate for epsilon
+        self.epsilon_decay = 0.995  # Decay rate for epsilon
         self.epsilon_min = 0.01  # Minimum epsilon (stopping point for decay)
         self.learning_rate = 0.001  # Learning rate for optimizer
         self.batch_size = 32  # Number of experiences to sample per training step
@@ -85,26 +87,40 @@ class DQNAgent:
         loss.backward()
         self.optimizer.step()
 
+    def decay_epsilon(self):
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-    def save(self, path="checkpoint"):
+    def save(self, path):
         os.makedirs(path, exist_ok=True)
+
+        # Save model, target model, optimizer, and meta info
         torch.save(self.model.state_dict(), os.path.join(path, "model.pth"))
         torch.save(self.target_model.state_dict(), os.path.join(path, "target_model.pth"))
         torch.save(self.optimizer.state_dict(), os.path.join(path, "optimizer.pth"))
-        torch.save({
-            "epsilon": self.epsilon,
-            "memory": list(self.memory)  # Save as list for compatibility
-        }, os.path.join(path, "meta.pth"))
-        print("Agent state saved.")
+        torch.save({"epsilon": self.epsilon}, os.path.join(path, "meta.pth"))
+
+        # Save memory with progress
+        memory_path = os.path.join(path, "memory.pkl")
+        with open(memory_path, "wb") as f:
+            for transition in tqdm(self.memory, desc="Saving replay memory", unit="step"):
+                pickle.dump(transition, f)
+
+        print("[INFO] Agent successfully saved.")
 
     def load(self, path="checkpoint"):
         self.model.load_state_dict(torch.load(os.path.join(path, "model.pth")))
         self.target_model.load_state_dict(torch.load(os.path.join(path, "target_model.pth")))
         self.optimizer.load_state_dict(torch.load(os.path.join(path, "optimizer.pth")))
 
-        meta = torch.load(os.path.join(path, "meta.pth"))
+        meta = torch.load(os.path.join(path, "meta.pth"), weights_only=False)
         self.epsilon = meta["epsilon"]
-        self.memory = deque(meta["memory"], maxlen=self.memory.maxlen)
+        with open(os.path.join(path, "memory.pkl"), "rb") as f:
+            import pickle
+            self.memory.clear()
+            try:
+                while True:
+                    self.memory.append(pickle.load(f))
+            except EOFError:
+                pass
         print("Agent state loaded.")

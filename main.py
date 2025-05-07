@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import cv2
 from dqn_agent import DQNAgent
 from ple import PLE
 from ple.games.monsterkong import MonsterKong
@@ -14,47 +13,41 @@ rewards = {
 }
 totalEpisodes = 0
 
-def preprocess_frame(frame, size):
-    frame = cv2.resize(frame, size)
-    frame = np.array(frame, dtype=np.float32) / 255.0
-    return frame[np.newaxis, :, :]
-
+def get_game_state_vector(game_state):
+    return np.array([
+        game_state["player_x"],
+        game_state["player_y"],
+        float(game_state["on_ladder"]),
+        float(game_state["on_ground"]),
+        game_state["princess_x"],
+        game_state["princess_y"],
+        game_state["closest_ladder_x"],
+    ], dtype=np.float32)
 
 def train_agent(env, agent, episodes):
     for e in range(episodes):
-        raw_frame = env.getScreenGrayscale()
-        preprocessed = preprocess_frame(raw_frame, agent.state_size)
-
-        agent.state_stack.clear()
-        for _ in range(agent.frame_stack):
-            agent.state_stack.append(preprocessed)
-
-        state = np.concatenate(agent.state_stack, axis=0)  # shape: (4, H, W)
+        game_state = env.getGameState()
+        state = get_game_state_vector(game_state)
 
         total_reward = 0
-        best_y = env.getGameState()["player_y"]
+        best_y = game_state["player_y"]
         timer = 0
 
         while not env.game_over() and timer < 900:
             action = agent.select_action(state)
             reward = env.act(action)
 
-            new_y = env.getGameState()["player_y"]
+            new_state = env.getGameState()
+            next_state = get_game_state_vector(new_state)
 
-            if env.getGameState()['onladder']:
+            if new_state['on_ladder']:
                 reward += 0.1
 
             climb_reward = 0
-            if new_y < best_y:
-                climb_reward = (best_y - new_y) * 0.5
-                best_y = new_y
+            if new_state["player_y"] < best_y:
+                climb_reward = (best_y - new_state["player_y"]) * 0.5
+                best_y = new_state["player_y"]
             reward += climb_reward
-
-            raw_frame = env.getScreenGrayscale()
-            next_frame = preprocess_frame(raw_frame, agent.state_size)
-            agent.state_stack.append(next_frame)
-            next_state = np.concatenate(agent.state_stack, axis=0)
-
             done = env.game_over()
 
             agent.remember(state, action, reward, next_state, done)
@@ -80,11 +73,12 @@ if __name__ == "__main__":
     env.init()
 
     action_set = env.getActionSet()
-    state_size = (99, 96)  # Any multiple of 33x32 block sizes
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if not torch.cuda.is_available():
         print("CUDA is not available, check torch installation")
-    agent = DQNAgent(state_size, action_set, device)
+
+    agent = DQNAgent(input_dim=7, action_set=action_set, device=device)
+
     try:
         totalEpisodes = agent.load("checkpoint")
     except FileNotFoundError:

@@ -1,6 +1,3 @@
-import pickle
-
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -9,10 +6,12 @@ import random
 from DQN import DQN
 import os
 from tqdm import tqdm
+import numpy as np
+import pickle
 
 class DQNAgent:
-    def __init__(self, state_size, action_set, device):
-        self.state_size = state_size
+    def __init__(self, input_dim, action_set, device):
+        self.input_dim = input_dim
         self.action_set = action_set
         self.device = device
 
@@ -22,9 +21,8 @@ class DQNAgent:
 
         self.action_size = len(action_set)
 
-        # Initialize the main Q-network and the target Q-network
-        self.model = DQN(4, self.action_size, state_size).to(device)
-        self.target_model = DQN(4, self.action_size, state_size).to(device)
+        self.model = DQN(input_dim, self.action_size).to(device)
+        self.target_model = DQN(input_dim, self.action_size).to(device)
         self.update_target_model()
 
         self.memory = deque(maxlen=75000)
@@ -38,9 +36,6 @@ class DQNAgent:
         self.batch_size = 32  # Number of experiences to sample per training step
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
-        self.frame_stack = 4  # number of frames to stack
-        self.state_stack = deque(maxlen=self.frame_stack)
-
     def update_target_model(self):
         # Copy weights from the main network to the target network
         self.target_model.load_state_dict(self.model.state_dict())
@@ -52,7 +47,7 @@ class DQNAgent:
     def select_action(self, state):
         # Choose action using epsilon-greedy policy
         if np.random.rand() < self.epsilon:
-            action_index = np.random.choice(len(self.action_set))
+            action_index = np.random.choice(self.action_size)
         else:
             state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             with torch.no_grad():
@@ -65,24 +60,18 @@ class DQNAgent:
             return
 
         batch = random.sample(self.memory, self.batch_size)
-        states = np.array([transition[0] for transition in batch])
-        actions = np.array([transition[1] for transition in batch])
-        rewards = np.array([transition[2] for transition in batch])
-        next_states = np.array([transition[3] for transition in batch])
-        dones = np.array([transition[4] for transition in batch])
-
-        states = torch.tensor(states, dtype=torch.float32, device=self.device)
-        actions = torch.tensor(actions, dtype=torch.long, device=self.device)
-        rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device)
-        next_states = torch.tensor(next_states, dtype=torch.float32, device=self.device)
-        dones = torch.tensor(dones, dtype=torch.float32, device=self.device)
+        states = torch.tensor(np.array([b[0] for b in batch]), dtype=torch.float32, device=self.device)
+        actions = torch.tensor([b[1] for b in batch], dtype=torch.long, device=self.device)
+        rewards = torch.tensor([b[2] for b in batch], dtype=torch.float32, device=self.device)
+        next_states = torch.tensor(np.array([b[3] for b in batch]), dtype=torch.float32, device=self.device)
+        dones = torch.tensor([b[4] for b in batch], dtype=torch.float32, device=self.device)
 
         q_values = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         with torch.no_grad():
             next_q_values = self.target_model(next_states).max(1)[0]
-        target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
+        target_q = rewards + (1 - dones) * self.gamma * next_q_values
 
-        loss = nn.MSELoss()(q_values, target_q_values)
+        loss = nn.MSELoss()(q_values, target_q)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -100,9 +89,7 @@ class DQNAgent:
         torch.save(self.optimizer.state_dict(), os.path.join(path, "optimizer.pth"))
         torch.save({"epsilon": self.epsilon, "episodes_trained": episodes_trained}, os.path.join(path, "meta.pth"))
 
-        # Save memory with progress
-        memory_path = os.path.join(path, "memory.pkl")
-        with open(memory_path, "wb") as f:
+        with open(os.path.join(path, "memory.pkl"), "wb") as f:
             for transition in tqdm(self.memory, desc="Saving replay memory", unit="step"):
                 pickle.dump(transition, f)
 
@@ -117,7 +104,6 @@ class DQNAgent:
         self.epsilon = meta.get("epsilon", 1.0)
         episodes_trained = meta.get("episodes_trained", 0)
         with open(os.path.join(path, "memory.pkl"), "rb") as f:
-            import pickle
             self.memory.clear()
             try:
                 while True:

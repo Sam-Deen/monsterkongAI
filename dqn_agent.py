@@ -32,7 +32,7 @@ class DQNAgent:
         # Hyperparameters
         self.gamma = 0.95  # Discount factor for future rewards
         self.epsilon = 1.0  # Exploration rate (probability of random action)
-        self.epsilon_decay = 0.995  # Decay rate for epsilon
+        self.epsilon_decay = 0.999  # Decay rate for epsilon
         self.epsilon_min = 0.01  # Minimum epsilon (stopping point for decay)
         self.learning_rate = 0.001  # Learning rate for optimizer
         self.batch_size = 32  # Number of experiences to sample per training step
@@ -91,14 +91,14 @@ class DQNAgent:
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-    def save(self, path):
+    def save(self, path, episodes_trained=0):
         os.makedirs(path, exist_ok=True)
 
         # Save model, target model, optimizer, and meta info
         torch.save(self.model.state_dict(), os.path.join(path, "model.pth"))
         torch.save(self.target_model.state_dict(), os.path.join(path, "target_model.pth"))
         torch.save(self.optimizer.state_dict(), os.path.join(path, "optimizer.pth"))
-        torch.save({"epsilon": self.epsilon}, os.path.join(path, "meta.pth"))
+        torch.save({"epsilon": self.epsilon, "episodes_trained": episodes_trained}, os.path.join(path, "meta.pth"))
 
         # Save memory with progress
         memory_path = os.path.join(path, "memory.pkl")
@@ -114,7 +114,8 @@ class DQNAgent:
         self.optimizer.load_state_dict(torch.load(os.path.join(path, "optimizer.pth")))
 
         meta = torch.load(os.path.join(path, "meta.pth"), weights_only=False)
-        self.epsilon = meta["epsilon"]
+        self.epsilon = meta.get("epsilon", 1.0)
+        episodes_trained = meta.get("episodes_trained", 0)
         with open(os.path.join(path, "memory.pkl"), "rb") as f:
             import pickle
             self.memory.clear()
@@ -124,3 +125,4 @@ class DQNAgent:
             except EOFError:
                 pass
         print("Agent state loaded.")
+        return episodes_trained

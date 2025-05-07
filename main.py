@@ -5,13 +5,14 @@ from dqn_agent import DQNAgent
 from ple import PLE
 from ple.games.monsterkong import MonsterKong
 import sys
+
 rewards = {
     "positive": 0,
     "win": 100,
     "negative": -25,
     "tick": -0.01
 }
-
+totalEpisodes = 0
 
 def preprocess_frame(frame, size):
     frame = cv2.resize(frame, size)
@@ -69,9 +70,10 @@ def train_agent(env, agent, episodes):
         print(f"Episode {e + 1}/{episodes} - "
               f"Total Reward: {total_reward:.2f} | "
               f"Epsilon: {agent.epsilon:.4f} | "
-              f"Memory: {len(agent.memory)}/{agent.memory.maxlen}")
-
-
+              f"Memory: {len(agent.memory)}/{agent.memory.maxlen} | ")
+        global totalEpisodes
+        totalEpisodes += 1
+        print(f"Total episodes: {totalEpisodes}")
 if __name__ == "__main__":
     game = MonsterKong()
     env = PLE(game, fps=30, display_screen=True, reward_values=rewards)
@@ -84,14 +86,14 @@ if __name__ == "__main__":
         print("CUDA is not available, check torch installation")
     agent = DQNAgent(state_size, action_set, device)
     try:
-        agent.load("checkpoint")
+        totalEpisodes = agent.load("checkpoint")
     except FileNotFoundError:
         print("No previous checkpoint found. Starting fresh.")
     except RuntimeError:
-        print("Error decoding model, starting fresh.")
+        print("Error decoding model. Starting fresh.")
     try:
-        train_agent(env, agent, episodes=1500)
+        train_agent(env, agent, episodes=15000)
     except KeyboardInterrupt:
         print("\n[INFO] KeyboardInterrupt detected. Saving...")
-        agent.save("checkpoint")
+        agent.save("checkpoint", totalEpisodes)
         sys.exit(0)

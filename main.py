@@ -19,8 +19,6 @@ def get_game_state_vector(game_state):
         game_state["player_y"],
         float(game_state["on_ladder"]),
         float(game_state["on_ground"]),
-        game_state["princess_x"],
-        game_state["princess_y"],
         game_state["closest_ladder_x"],
     ], dtype=np.float32)
 
@@ -73,11 +71,12 @@ if __name__ == "__main__":
     env.init()
 
     action_set = env.getActionSet()
+    action_set = action_set
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if not torch.cuda.is_available():
         print("CUDA is not available, check torch installation")
 
-    agent = DQNAgent(input_dim=7, action_set=action_set, device=device)
+    agent = DQNAgent(input_dim=5, action_set=action_set, device=device)
 
     try:
         totalEpisodes = agent.load("checkpoint")

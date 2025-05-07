@@ -79,7 +79,7 @@ if __name__ == "__main__":
     agent = DQNAgent(input_dim=5, action_set=action_set, device=device)
 
     try:
-        totalEpisodes = agent.load("checkpoint")
+        totalEpisodes = agent.load("checkpoint.pkl")
     except FileNotFoundError:
         print("No previous checkpoint found. Starting fresh.")
     except RuntimeError:
@@ -88,5 +88,5 @@ if __name__ == "__main__":
         train_agent(env, agent, episodes=15000)
     except KeyboardInterrupt:
         print("\n[INFO] KeyboardInterrupt detected. Saving...")
-        agent.save("checkpoint", totalEpisodes)
+        agent.save("checkpoint.pkl", totalEpisodes)
         sys.exit(0)

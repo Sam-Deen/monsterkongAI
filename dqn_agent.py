@@ -80,35 +80,32 @@ class DQNAgent:
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-    def save(self, path, episodes_trained=0):
-        os.makedirs(path, exist_ok=True)
+    def save(self, filepath, total_episodes):
+        """Saves the agent's model and training state with a loading bar."""
+        save_data = {
+            "model_state": self.model.state_dict(),
+            "target_model_state": self.target_model.state_dict(),
+            "optimizer_state": self.optimizer.state_dict(),
+            "total_episodes": total_episodes,
+            "epsilon": self.epsilon,
+            "memory": list(self.memory)  # Convert deque to list for saving
+        }
+        with tqdm(total=100, desc="Saving Progress", unit="step") as pbar:
+            with open(filepath, "wb") as f:
+                pickle.dump(save_data, f)
+                # Simulate progress for the save process
+                for i in range(100):
+                    pbar.update(1)
+        print(f"[INFO] Model and training state saved to {filepath}")
 
-        # Save model, target model, optimizer, and meta info
-        torch.save(self.model.state_dict(), os.path.join(path, "model.pth"))
-        torch.save(self.target_model.state_dict(), os.path.join(path, "target_model.pth"))
-        torch.save(self.optimizer.state_dict(), os.path.join(path, "optimizer.pth"))
-        torch.save({"epsilon": self.epsilon, "episodes_trained": episodes_trained}, os.path.join(path, "meta.pth"))
-
-        with open(os.path.join(path, "memory.pkl"), "wb") as f:
-            for transition in tqdm(self.memory, desc="Saving replay memory", unit="step"):
-                pickle.dump(transition, f)
-
-        print("[INFO] Agent successfully saved.")
-
-    def load(self, path="checkpoint"):
-        self.model.load_state_dict(torch.load(os.path.join(path, "model.pth")))
-        self.target_model.load_state_dict(torch.load(os.path.join(path, "target_model.pth")))
-        self.optimizer.load_state_dict(torch.load(os.path.join(path, "optimizer.pth")))
-
-        meta = torch.load(os.path.join(path, "meta.pth"), weights_only=False)
-        self.epsilon = meta.get("epsilon", 1.0)
-        episodes_trained = meta.get("episodes_trained", 0)
-        with open(os.path.join(path, "memory.pkl"), "rb") as f:
-            self.memory.clear()
-            try:
-                while True:
-                    self.memory.append(pickle.load(f))
-            except EOFError:
-                pass
-        print("Agent state loaded.")
-        return episodes_trained
+    def load(self, filepath):
+        """Loads the agent's model and training state."""
+        with open(filepath, "rb") as f:
+            save_data = pickle.load(f)
+        self.model.load_state_dict(save_data["model_state"])
+        self.target_model.load_state_dict(save_data["target_model_state"])
+        self.optimizer.load_state_dict(save_data["optimizer_state"])
+        self.epsilon = save_data["epsilon"]
+        self.memory = deque(save_data["memory"], maxlen=self.memory.maxlen)
+        print(f"[INFO] Model and training state loaded from {filepath}")
+        return save_data["total_episodes"]

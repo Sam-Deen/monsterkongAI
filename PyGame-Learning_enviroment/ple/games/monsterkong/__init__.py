@@ -75,9 +75,25 @@ class MonsterKong(PyGameWrapper):
         """
         state = {}
         # Include the player's Y position
-        state['player_y'] = self.player.rect.y
-        state['onladder'] = self.player.onLadder
+        state["player_x"] = self.player.rect.x
+        state["player_y"] = self.player.rect.y
+        state["on_ladder"] = self.player.onLadder
+        state["on_ground"] = not self.player.onLadder and not self.player.isJumping
+        state["princess_x"] = 50
+        state["princess_y"] = 48
+        state["closest_ladder_x"] = self.getLadderXForPlayer()
+
         return state
+
+    def getLadderXForPlayer(self):
+        player_y = self.player.rect.y  # Get player's current y position
+        for ladder in self.ladderGroup:
+            ladder_x, ladder_y = ladder.getPosition()  # Get the ladder's x and y positions
+            # Check if the ladder's y position matches the player's y position
+            if abs(round(ladder_y) - player_y) <=8:
+                return round(ladder_x)  # Return the x position of the matching ladder
+
+        return None  # Return None if no ladder matches
 
     def getScore(self):
         return self.newGame.score

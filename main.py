@@ -71,7 +71,8 @@ if __name__ == "__main__":
     env.init()
 
     action_set = env.getActionSet()
-    action_set = action_set
+    if action_set is not None:
+        action_set.remove(ord(' '))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if not torch.cuda.is_available():
         print("CUDA is not available, check torch installation")

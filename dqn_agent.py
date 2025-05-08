@@ -28,12 +28,12 @@ class DQNAgent:
         self.memory = deque(maxlen=75000)
 
         # Hyperparameters
-        self.gamma = 0.95  # Discount factor for future rewards
+        self.gamma = 0.99  # Discount factor for future rewards
         self.epsilon = 1.0  # Exploration rate (probability of random action)
         self.epsilon_decay = 0.999  # Decay rate for epsilon
         self.epsilon_min = 0.01  # Minimum epsilon (stopping point for decay)
         self.learning_rate = 0.001  # Learning rate for optimizer
-        self.batch_size = 32  # Number of experiences to sample per training step
+        self.batch_size = 64  # Number of experiences to sample per training step
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
     def update_target_model(self):

@@ -7,7 +7,7 @@ import sys
 
 rewards = {
     "positive": 0,
-    "win": 100,
+    "win": 0, # last step seems to be "a" when saving princess, giving a score will massively favour "a" and brick the AI
     "negative": -25,
     "tick": -0.01
 }
@@ -42,7 +42,7 @@ def train_agent(env, agent, episodes):
                 reward += 0.1
 
             climb_reward = 0
-            if new_state["player_y"] < best_y:
+            if new_state["player_y"] < best_y and new_state["on_ladder"]:
                 climb_reward = (best_y - new_state["player_y"]) * 0.5
                 best_y = new_state["player_y"]
             reward += climb_reward
@@ -53,7 +53,7 @@ def train_agent(env, agent, episodes):
             total_reward += reward
             timer += 1
             agent.replay()
-        if e % 10 == 0:
+        if e % 5 == 0:
             agent.update_target_model()
 
         agent.decay_epsilon()
@@ -71,8 +71,6 @@ if __name__ == "__main__":
     env.init()
 
     action_set = env.getActionSet()
-    if action_set is not None:
-        action_set.remove(ord(' '))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if not torch.cuda.is_available():
         print("CUDA is not available, check torch installation")

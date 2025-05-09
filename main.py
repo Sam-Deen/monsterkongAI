@@ -6,10 +6,10 @@ from ple.games.monsterkong import MonsterKong
 import sys
 
 rewards = {
-    "positive": 0,
+    "positive": 5,
     "win": 0, # last step seems to be "a" when saving princess, giving a score will massively favour "a" and brick the AI
     "negative": -25,
-    "tick": -0.01
+    "tick": -0.1
 }
 totalEpisodes = 0
 
@@ -20,6 +20,8 @@ def get_game_state_vector(game_state):
         float(game_state["on_ladder"]),
         float(game_state["on_ground"]),
         game_state["closest_ladder_x"],
+        game_state["closest_coin_x"],
+        game_state["closest_coin_y"],
     ], dtype=np.float32)
 
 def train_agent(env, agent, episodes):
@@ -39,11 +41,11 @@ def train_agent(env, agent, episodes):
             next_state = get_game_state_vector(new_state)
 
             if new_state['on_ladder']:
-                reward += 0.1
+                reward += 1
 
             climb_reward = 0
             if new_state["player_y"] < best_y and new_state["on_ladder"]:
-                climb_reward = (best_y - new_state["player_y"]) * 0.5
+                climb_reward = (best_y - new_state["player_y"]) * 3
                 best_y = new_state["player_y"]
             reward += climb_reward
             done = env.game_over()
@@ -67,7 +69,7 @@ def train_agent(env, agent, episodes):
         print(f"Total episodes: {totalEpisodes}")
 if __name__ == "__main__":
     game = MonsterKong()
-    env = PLE(game, fps=30, display_screen=True, reward_values=rewards)
+    env = PLE(game, fps=30, display_screen=False, reward_values=rewards)
     env.init()
 
     action_set = env.getActionSet()
@@ -75,7 +77,7 @@ if __name__ == "__main__":
     if not torch.cuda.is_available():
         print("CUDA is not available, check torch installation")
 
-    agent = DQNAgent(input_dim=5, action_set=action_set, device=device)
+    agent = DQNAgent(input_dim=7, action_set=action_set, device=device)
 
     try:
         totalEpisodes = agent.load("checkpoint.pkl")

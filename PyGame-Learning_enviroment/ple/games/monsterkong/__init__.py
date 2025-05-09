@@ -79,21 +79,43 @@ class MonsterKong(PyGameWrapper):
         state["player_y"] = self.player.rect.y
         state["on_ladder"] = self.player.onLadder
         state["on_ground"] = not self.player.onLadder and not self.player.isJumping
-        state["princess_x"] = 50
-        state["princess_y"] = 48
+
         state["closest_ladder_x"] = self.getLadderXForPlayer()
 
+        coin_x, coin_y = self.getClosestCoinForPlayer()
+        state["closest_coin_x"] = coin_x
+        state["closest_coin_y"] = coin_y
         return state
 
     def getLadderXForPlayer(self):
-        player_y = self.player.rect.y  # Get player's current y position
+        player_y = self.player.rect.y
         for ladder in self.ladderGroup:
-            ladder_x, ladder_y = ladder.getPosition()  # Get the ladder's x and y positions
-            # Check if the ladder's y position matches the player's y position
+            ladder_x, ladder_y = ladder.getPosition()
             if abs(round(ladder_y) - player_y) <=8:
-                return round(ladder_x)  # Return the x position of the matching ladder
+                return round(ladder_x)
 
-        return None  # Return None if no ladder matches
+        return None
+
+    def getClosestCoinForPlayer(self):
+        player_x = self.player.rect.x
+        player_y = self.player.rect.y
+
+        closest_coin = None
+        min_distance = float('inf')
+
+        for coin in self.newGame.Coins:
+            coin_x, coin_y = coin.getPosition()
+            distance = ((player_x - coin_x) ** 2 + (player_y - coin_y) ** 2) ** 0.5
+
+            if distance < min_distance:
+                min_distance = distance
+                closest_coin = coin
+
+        if closest_coin is None:
+            return None, None
+
+        return closest_coin.getPosition()
+
 
     def getScore(self):
         return self.newGame.score

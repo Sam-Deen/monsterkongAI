@@ -7,7 +7,7 @@ import sys
 
 rewards = {
     "positive": 5,
-    "win": 0, # last step seems to be "a" when saving princess, giving a score will massively favour "a" and brick the AI
+    "win": 1000,
     "negative": -25,
     "tick": -0.1
 }
@@ -33,19 +33,17 @@ def train_agent(env, agent, episodes):
         best_y = game_state["player_y"]
         timer = 0
 
-        while not env.game_over() and timer < 900:
+        while not env.game_over() and timer < 3000:
             action = agent.select_action(state)
             reward = env.act(action)
 
             new_state = env.getGameState()
             next_state = get_game_state_vector(new_state)
 
-            if new_state['on_ladder']:
-                reward += 1
 
             climb_reward = 0
             if new_state["player_y"] < best_y and new_state["on_ladder"]:
-                climb_reward = (best_y - new_state["player_y"]) * 3
+                climb_reward = (10000/best_y) * 2
                 best_y = new_state["player_y"]
             reward += climb_reward
             done = env.game_over()
@@ -58,6 +56,9 @@ def train_agent(env, agent, episodes):
         if e % 5 == 0:
             agent.update_target_model()
 
+            if reward >= rewards["win"]:
+                break
+
         agent.decay_epsilon()
         env.reset_game()
         print(f"Episode {e + 1}/{episodes} - "
@@ -69,7 +70,7 @@ def train_agent(env, agent, episodes):
         print(f"Total episodes: {totalEpisodes}")
 if __name__ == "__main__":
     game = MonsterKong()
-    env = PLE(game, fps=30, display_screen=False, reward_values=rewards)
+    env = PLE(game, fps=30, display_screen=True, reward_values=rewards)
     env.init()
 
     action_set = env.getActionSet()

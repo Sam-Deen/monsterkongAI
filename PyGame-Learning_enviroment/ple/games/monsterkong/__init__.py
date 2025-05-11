@@ -94,7 +94,7 @@ class MonsterKong(PyGameWrapper):
             if abs(round(ladder_y) - player_y) <=8:
                 return round(ladder_x)
 
-        return None
+        return 0
 
     def getClosestCoinForPlayer(self):
         player_x = self.player.rect.x
@@ -114,7 +114,7 @@ class MonsterKong(PyGameWrapper):
         if closest_coin is None:
             return None, None
 
-        return closest_coin.getPosition()
+        return tuple(map(int, closest_coin.getPosition()))
 
 
     def getScore(self):

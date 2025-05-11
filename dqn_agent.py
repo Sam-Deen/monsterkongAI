@@ -4,7 +4,6 @@ import torch.optim as optim
 from collections import deque
 import random
 from DQN import DQN
-import os
 from tqdm import tqdm
 import numpy as np
 import pickle
@@ -34,7 +33,19 @@ class DQNAgent:
         self.epsilon_min = 0.05  # Minimum epsilon (stopping point for decay)
         self.learning_rate = 0.0005  # Learning rate for optimizer
         self.batch_size = 64  # Number of experiences to sample per training step
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.Adam(
+            self.model.parameters(),
+            lr=self.learning_rate, # Learning rate: Controls the step size for gradient updates
+            betas=(0.9, 0.999), # Coefficients for computing running averages of the gradient (first moment) and its square (second moment)
+                                # Beta1=0.9: Exponentially moving average of past gradients (momentum term)
+                                # Beta2=0.999: Exponentially moving average of past squared gradients (helps with noisy gradients)
+
+            eps=1e-8,  # A small value added to the denominator for numerical stability to prevent division by zero
+            weight_decay=0.0,  # L2 regularization (penalty for large weights to help with generalization); set to a small value like 1e-5 if needed to prevent overfitting
+            amsgrad=False  # Whether to use the AMSGrad variant of Adam. If False, uses the standard Adam. AMSGrad helps with unstable training but is rarely necessary.
+        )
+
+        self.rng = np.random.default_rng()
 
     def update_target_model(self):
         # Copy weights from the main network to the target network
@@ -46,8 +57,8 @@ class DQNAgent:
 
     def select_action(self, state):
         # Choose action using epsilon-greedy policy
-        if np.random.rand() < self.epsilon:
-            action_index = np.random.choice(self.action_size)
+        if self.rng.random() < self.epsilon:
+            action_index = self.rng.integers(self.action_size)
         else:
             state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
             with torch.no_grad():
@@ -94,7 +105,7 @@ class DQNAgent:
             with open(filepath, "wb") as f:
                 pickle.dump(save_data, f)
                 # Simulate progress for the save process
-                for i in range(100):
+                for _ in range(100):
                     pbar.update(1)
         print(f"[INFO] Model and training state saved to {filepath}")
 

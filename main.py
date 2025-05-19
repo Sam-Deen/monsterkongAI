@@ -7,7 +7,7 @@ import sys
 
 # Define custom rewards for the game
 rewards = {
-    "positive": 2.5,    # coin
+    "positive": 0,    # coin
     "win": 500,         # save princess
     "negative": -25,    # fireball
     "tick": -0.1        # every frame
@@ -15,20 +15,20 @@ rewards = {
 
 total_episodes = 0
 new_floor_reward = 50  # Reward for reaching a new floor
+ladder_reward = 0.1
 
-
-def get_state_vector(game_data):
+def get_state_vector(state):
     """
     Convert the game data dictionary to a vector for the DQN agent.
     """
     return np.array([
-        game_data["player_x"],
-        game_data["player_y"],
-        float(game_data["on_ladder"]),
-        float(game_data["on_ground"]),
-        game_data["closest_ladder_x"],
-        game_data["closest_coin_x"],
-        game_data["closest_coin_y"],
+        state["player_x"],
+        state["player_y"],
+        float(state["on_ladder"]),
+        float(state["on_ground"]),
+        state["closest_ladder_x"],
+        # state["closest_coin_x"],
+        # state["closest_coin_y"],
     ], dtype=np.float32)
 
 def train_agent(env, agent, episodes):
@@ -37,51 +37,50 @@ def train_agent(env, agent, episodes):
     """
     global total_episodes
 
-    for episode in range(episodes):
-        # Initialize game data and variables for the current episode
-        initial_game_data = env.getGameState()
-        current_state = get_state_vector(initial_game_data)
-        total_reward = 0
-        best_y = initial_game_data["player_y"]  # Track player's highest y-coordinate
-        timer = 0  # Prevent infinite loops
+    for e in range(episodes):
+        initial_game_state = env.getGameState()
+        initial_vector_state = get_state_vector(initial_game_state)
 
-        while not env.game_over() and timer < 3000:
+        total_reward = 0
+        reached_floors = set()  # Track milestones reached in this episode
+
+        best_y = initial_game_state["player_y"]
+        timer = 0 # Prevent infinite loops while no lose state
+
+        while not env.game_over() and timer < 1500:
             # Agent selects an action
-            action = agent.select_action(current_state)
+            action = agent.select_action(initial_vector_state)
             reward = env.act(action)
 
             # Process the updated game data
-            updated_game_data = env.getGameState()
-            updated_state = get_state_vector(updated_game_data)
+            post_action_game_state = env.getGameState()
+            post_action_vector_state = get_state_vector(post_action_game_state)
 
             # Bonus reward for climbing higher on a ladder
             climb_reward = 0
-            if updated_game_data["player_y"] < best_y and updated_game_data["on_ladder"]:
-                climb_reward = (best_y - updated_game_data["player_y"]) * 0.5
-                best_y = updated_game_data["player_y"]
-
+            if post_action_game_state["player_y"] < best_y and post_action_game_state["on_ladder"]:
+                climb_reward = (best_y - post_action_game_state["player_y"]) * 0.5
+                best_y = post_action_game_state["player_y"]
             reward += climb_reward
 
             # bonus reward for getting to new floor
             floors = [360, 285, 210, 135, 60]  # Y-coordinates for floors
-            reached_floors = set()  # Track milestones reached in this episode
+
             for floor in floors:
-                if updated_game_data["player_y"] < floor and floor not in reached_floors:
-                    reward += new_floor_reward
+                if post_action_game_state["player_y"] < floor and floor not in reached_floors:
+                    # reward += new_floor_reward
                     reached_floors.add(floor)
 
-
-            # Ladder lingering penalty
-            ladder_penalty = -0.05 if updated_game_data["on_ladder"] else 0
-
-            reward += ladder_penalty
+            # bonus reward for just being on a ladder
+            if post_action_game_state["on_ladder"]:
+                reward += ladder_reward
 
             done = env.game_over()
 
-            # Store the experience in the agent's memory
-            agent.remember(current_state, action, reward, updated_state, done)
-            current_state = updated_state
+            # print(f"initial vectors: {initial_vector_state} post action: {post_action_vector_state} action taken: {chr(action) if action is not None else "none"} reward: {round(reward, 3)} ")
 
+            agent.remember(initial_vector_state, action, reward, post_action_vector_state, done)
+            initial_vector_state = post_action_vector_state
             total_reward += reward
             timer += 1
 
@@ -92,25 +91,17 @@ def train_agent(env, agent, episodes):
             if reward >= rewards["win"]:
                 break
 
-
         # Update the target model
-        if episode % 10 == 0:
+        if e % 10 == 0:
             agent.update_target_model()
-
-        # Decay exploration rate
         agent.decay_epsilon()
-
         env.reset_game()
-
-        # Log progress
-        print(f"Episode {episode + 1}/{episodes} - "
+        print(f"Episode {e + 1}/{episodes} - "
               f"Total Reward: {total_reward:.2f} | "
               f"Epsilon: {agent.epsilon:.4f} | "
-              f"Memory: {len(agent.memory)}/{agent.memory.maxlen}")
-
+              f"Memory: {len(agent.memory)}/{agent.memory.maxlen} | ")
         total_episodes += 1
-        print(f"Total episodes so far: {total_episodes}")
-
+        print(f"Total episodes: {total_episodes}")
 if __name__ == "__main__":
     # Initialize the MonsterKong game environment
     game = MonsterKong()
@@ -126,11 +117,11 @@ if __name__ == "__main__":
         print("CUDA is not available, check torch installation")
 
     # Initialize the DQN agent
-    agent = DQNAgent(input_dim=7, action_set=action_set, device=device)
+    agent = DQNAgent(input_dim=5, action_set=action_set, device=device)
 
     # Attempt to load the agent's prior training checkpoint
     try:
-        total_episodes = agent.load("checkpoint.pkl")
+        total_episodes = agent.load("checkpoint_nofire_nocoin.pkl")
     except FileNotFoundError:
         print("No previous checkpoint found. Starting fresh.")
     except RuntimeError:

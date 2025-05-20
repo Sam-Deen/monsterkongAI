@@ -29,7 +29,7 @@ class DQNAgent:
         # Hyperparameters
         self.gamma = 0.99  # Discount factor for future rewards
         self.epsilon = 1.0  # Exploration rate (probability of random action)
-        self.epsilon_decay = 0.997  # Decay rate for epsilon
+        self.epsilon_decay = 0.995  # Decay rate for epsilon
         self.epsilon_min = 0.05  # Minimum epsilon (stopping point for decay)
         self.learning_rate = 0.0005  # Learning rate for optimizer
         self.batch_size = 64  # Number of experiences to sample per training step
@@ -41,11 +41,13 @@ class DQNAgent:
                                 # Beta2=0.999: Exponentially moving average of past squared gradients (helps with noisy gradients)
 
             eps=1e-8,  # A small value added to the denominator for numerical stability to prevent division by zero
-            weight_decay=0.0,  # L2 regularization (penalty for large weights to help with generalization); set to a small value like 1e-5 if needed to prevent overfitting
+            weight_decay=1e-5,  # L2 regularization (penalty for large weights to help with generalization); set to a small value like 1e-5 if needed to prevent overfitting
             amsgrad=False  # Whether to use the AMSGrad variant of Adam. If False, uses the standard Adam. AMSGrad helps with unstable training but is rarely necessary.
         )
 
         self.rng = np.random.default_rng()
+
+        self.loss_history = []
 
     def update_target_model(self):
         # Copy weights from the main network to the target network
@@ -70,22 +72,31 @@ class DQNAgent:
         if len(self.memory) < self.batch_size:
             return
 
+        # Sample a batch
         batch = random.sample(self.memory, self.batch_size)
         states = torch.tensor(np.array([b[0] for b in batch]), dtype=torch.float32, device=self.device)
         actions = torch.tensor([b[1] for b in batch], dtype=torch.long, device=self.device)
-        rewards = torch.tensor([b[2] for b in batch], dtype=torch.float32, device=self.device)
+        rewards = torch.tensor([b[2] for b in batch], dtype = torch.float32, device = self.device)
         next_states = torch.tensor(np.array([b[3] for b in batch]), dtype=torch.float32, device=self.device)
-        dones = torch.tensor([b[4] for b in batch], dtype=torch.float32, device=self.device)
+        dones = torch.tensor([b[4] for b in batch], dtype = torch.float32, device = self.device)
 
+        # Compute current Q-values from the main model
         q_values = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+
+        # Double DQN: Use main model to select best actions in next state
         with torch.no_grad():
-            next_q_values = self.target_model(next_states).max(1)[0]
+            next_actions = self.model(next_states).argmax(1)
+        next_q_values = self.target_model(next_states).gather(1, next_actions.unsqueeze(1)).squeeze(1)
         target_q = rewards + (1 - dones) * self.gamma * next_q_values
 
+        # Compute loss and optimize
         loss = nn.MSELoss()(q_values, target_q)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
+        # Store loss history
+        self.loss_history.append(loss.item())
 
     def decay_epsilon(self):
         if self.epsilon > self.epsilon_min:

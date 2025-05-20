@@ -82,9 +82,9 @@ class MonsterKong(PyGameWrapper):
 
         state["closest_ladder_x"] = self.getLadderXForPlayer()
 
-        coin_x, coin_y = self.getClosestCoinForPlayer()
-        state["closest_coin_x"] = coin_x
-        state["closest_coin_y"] = coin_y
+        fireball_x, fireball_y = self.getClosestFireballForPlayer()
+        state["closest_fireball_x"] = fireball_x
+        state["closest_fireball_y"] = fireball_y
         return state
 
     def getLadderXForPlayer(self):
@@ -96,25 +96,25 @@ class MonsterKong(PyGameWrapper):
 
         return 0
 
-    def getClosestCoinForPlayer(self):
+    def getClosestFireballForPlayer(self):
         player_x = self.player.rect.x
         player_y = self.player.rect.y
 
-        closest_coin = None
+        closest_fireball = None
         min_distance = float('inf')
 
-        for coin in self.newGame.Coins:
-            coin_x, coin_y = coin.getPosition()
-            distance = ((player_x - coin_x) ** 2 + (player_y - coin_y) ** 2) ** 0.5
+        for fireball in self.newGame.Fireballs:
+            fireball_x, fireball_y = fireball.getPosition()
+            distance = ((player_x - fireball_x) ** 2 + (player_y - fireball_y) ** 2) ** 0.5
 
             if distance < min_distance:
                 min_distance = distance
-                closest_coin = coin
+                closest_fireball = fireball
 
-        if closest_coin is None:
-            return None, None
+        if closest_fireball is None:
+            return -1000, -1000
 
-        return tuple(map(int, closest_coin.getPosition()))
+        return tuple(map(int, closest_fireball.getPosition()))
 
 
     def getScore(self):
@@ -122,6 +122,18 @@ class MonsterKong(PyGameWrapper):
 
     def game_over(self):
         return self.newGame.lives <= 0
+
+    def generateFireballs(self):
+        if self.fireballTimer == 0:
+            self.newGame.CreateFireball(
+                self.newGame.Enemies[0].getPosition(), 0)
+        elif len(self.newGame.Enemies) >= 2 and self.fireballTimer == 23:
+            self.newGame.CreateFireball(
+                self.newGame.Enemies[1].getPosition(), 1)
+        elif len(self.newGame.Enemies) >= 3 and self.fireballTimer == 46:
+            self.newGame.CreateFireball(
+                self.newGame.Enemies[2].getPosition(), 2)
+        self.fireballTimer = (self.fireballTimer + 1) % 70
 
     def step(self, dt):
         self.newGame.score += self.rewards["tick"]
@@ -134,17 +146,8 @@ class MonsterKong(PyGameWrapper):
         # our game at the moment
 
 
-        # REMOVE COMMENT BELOW TO CREATE FIREBALL AGAIN
-        # if self.fireballTimer == 0:
-        #     self.newGame.CreateFireball(
-        #         self.newGame.Enemies[0].getPosition(), 0)
-        # elif len(self.newGame.Enemies) >= 2 and self.fireballTimer == 23:
-        #     self.newGame.CreateFireball(
-        #         self.newGame.Enemies[1].getPosition(), 1)
-        # elif len(self.newGame.Enemies) >= 3 and self.fireballTimer == 46:
-        #     self.newGame.CreateFireball(
-        #         self.newGame.Enemies[2].getPosition(), 2)
-        # self.fireballTimer = (self.fireballTimer + 1) % 70
+        # self.generateFireballs()
+
 
         # Animate the coin
         for coin in self.coinGroup:

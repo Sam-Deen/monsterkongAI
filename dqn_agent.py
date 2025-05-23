@@ -33,17 +33,7 @@ class DQNAgent:
         self.epsilon_min = 0.05  # Minimum epsilon (stopping point for decay)
         self.learning_rate = 0.0005  # Learning rate for optimizer
         self.batch_size = 64  # Number of experiences to sample per training step
-        self.optimizer = optim.Adam(
-            self.model.parameters(),
-            lr=self.learning_rate, # Learning rate: Controls the step size for gradient updates
-            betas=(0.9, 0.999), # Coefficients for computing running averages of the gradient (first moment) and its square (second moment)
-                                # Beta1=0.9: Exponentially moving average of past gradients (momentum term)
-                                # Beta2=0.999: Exponentially moving average of past squared gradients (helps with noisy gradients)
-
-            eps=1e-8,  # A small value added to the denominator for numerical stability to prevent division by zero
-            weight_decay=1e-5,  # L2 regularization (penalty for large weights to help with generalization); set to a small value like 1e-5 if needed to prevent overfitting
-            amsgrad=False  # Whether to use the AMSGrad variant of Adam. If False, uses the standard Adam. AMSGrad helps with unstable training but is rarely necessary.
-        )
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
         self.rng = np.random.default_rng()
 
@@ -101,6 +91,8 @@ class DQNAgent:
     def decay_epsilon(self):
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
+            if self.epsilon < self.epsilon_min:
+                self.epsilon = self.epsilon_min
 
     def save(self, filepath, total_episodes):
         """Saves the agent's model and training state with a loading bar."""

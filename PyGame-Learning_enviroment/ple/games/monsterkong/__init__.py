@@ -112,7 +112,7 @@ class MonsterKong(PyGameWrapper):
                 closest_fireball = fireball
 
         if closest_fireball is None:
-            return -1000, -1000
+            return -10000, -10000
 
         return tuple(map(int, closest_fireball.getPosition()))
 

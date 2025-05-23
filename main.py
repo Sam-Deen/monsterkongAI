@@ -125,7 +125,9 @@ def train_agent(env, agent, episodes):
 
 
             # Perform a training step
-            agent.replay()
+            # agent.replay()
+            if timer % 4 == 0:
+                agent.replay()
 
             # Break early if the win reward is achieved
             if reward >= rewards["win"]:

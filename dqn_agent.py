@@ -1,5 +1,5 @@
 import torch
-import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from collections import deque
 import random
@@ -32,7 +32,7 @@ class DQNAgent:
         self.epsilon_decay = 0.995  # Decay rate for epsilon
         self.epsilon_min = 0.05  # Minimum epsilon (stopping point for decay)
         self.learning_rate = 0.0005  # Learning rate for optimizer
-        self.batch_size = 64  # Number of experiences to sample per training step
+        self.batch_size = 4096  # Number of experiences to sample per training step
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
         self.rng = np.random.default_rng()
@@ -64,7 +64,7 @@ class DQNAgent:
 
         # Sample a batch
         batch = random.sample(self.memory, self.batch_size)
-        states = torch.tensor(np.array([b[0] for b in batch]), dtype=torch.float32, device=self.device)
+        states = torch.from_numpy(np.stack([b[0] for b in batch])).float().to(self.device)
         actions = torch.tensor([b[1] for b in batch], dtype=torch.long, device=self.device)
         rewards = torch.tensor([b[2] for b in batch], dtype = torch.float32, device = self.device)
         next_states = torch.tensor(np.array([b[3] for b in batch]), dtype=torch.float32, device=self.device)
@@ -76,11 +76,11 @@ class DQNAgent:
         # Double DQN: Use main model to select best actions in next state
         with torch.no_grad():
             next_actions = self.model(next_states).argmax(1)
-        next_q_values = self.target_model(next_states).gather(1, next_actions.unsqueeze(1)).squeeze(1)
-        target_q = rewards + (1 - dones) * self.gamma * next_q_values
+            next_q_values = self.target_model(next_states).gather(1, next_actions.unsqueeze(1)).squeeze(1)
+            target_q = rewards + (1 - dones) * self.gamma * next_q_values
 
         # Compute loss and optimize
-        loss = nn.MSELoss()(q_values, target_q)
+        loss = F.mse_loss(q_values, target_q)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()

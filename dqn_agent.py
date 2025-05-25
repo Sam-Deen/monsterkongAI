@@ -24,7 +24,7 @@ class DQNAgent:
         self.target_model = DQN(input_dim, self.action_size).to(device)
         self.update_target_model()
 
-        self.memory = deque(maxlen=1000000)
+        self.memory = deque(maxlen=250000)
 
         # Hyperparameters
         self.gamma = 0.99  # Discount factor for future rewards
@@ -32,7 +32,7 @@ class DQNAgent:
         self.epsilon_decay = 0.995  # Decay rate for epsilon
         self.epsilon_min = 0.05  # Minimum epsilon (stopping point for decay)
         self.learning_rate = 0.0005  # Learning rate for optimizer
-        self.batch_size = 4096  # Number of experiences to sample per training step
+        self.batch_size = 512  # Number of experiences to sample per training step
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
         self.rng = np.random.default_rng()
@@ -64,11 +64,11 @@ class DQNAgent:
 
         # Sample a batch
         batch = random.sample(self.memory, self.batch_size)
-        states = torch.from_numpy(np.stack([b[0] for b in batch])).float().to(self.device)
-        actions = torch.tensor([b[1] for b in batch], dtype=torch.long, device=self.device)
-        rewards = torch.tensor([b[2] for b in batch], dtype = torch.float32, device = self.device)
-        next_states = torch.tensor(np.array([b[3] for b in batch]), dtype=torch.float32, device=self.device)
-        dones = torch.tensor([b[4] for b in batch], dtype = torch.float32, device = self.device)
+        states = torch.from_numpy(np.stack([b[0] for b in batch])).to(self.device)
+        next_states = torch.from_numpy(np.stack([b[3] for b in batch])).to(self.device)
+        rewards = torch.from_numpy(np.array([b[2] for b in batch], dtype=np.float32)).to(self.device)
+        dones = torch.from_numpy(np.array([b[4] for b in batch], dtype=np.float32)).to(self.device)
+        actions = torch.from_numpy(np.array([b[1] for b in batch], dtype=np.int64)).to(self.device)
 
         # Compute current Q-values from the main model
         q_values = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
@@ -83,10 +83,15 @@ class DQNAgent:
         loss = F.mse_loss(q_values, target_q)
         self.optimizer.zero_grad()
         loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+
         self.optimizer.step()
 
         # Store loss history
         self.loss_history.append(loss.item())
+        if len(self.loss_history) > 100000:
+            self.loss_history.pop(0)
 
     def decay_epsilon(self):
         if self.epsilon > self.epsilon_min:

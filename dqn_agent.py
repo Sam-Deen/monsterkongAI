@@ -34,7 +34,7 @@ class DQNAgent:
         self.epsilon_min = 0.05  # Minimum epsilon (stopping point for decay)
         self.learning_rate = 0.0005  # Learning rate for optimizer
         self.batch_size = 512  # Number of experiences to sample per training step
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate, weight_decay=1e-5)
 
         self.rng = np.random.default_rng()
 
@@ -44,9 +44,20 @@ class DQNAgent:
         # Copy weights from the main network to the target network
         self.target_model.load_state_dict(self.model.state_dict())
 
-    def remember(self, state, action, reward, next_state, done):
+    def remember_single(self, state, action, reward, next_state, done, to_win_memory=False):
         # Store a transition tuple in the replay memory
-        self.memory.append((state, self.action_to_index[action], reward, next_state, done))
+        if to_win_memory:
+            self.win_memory.append((state, self.action_to_index[action], reward, next_state, done))
+        else:
+            self.memory.append((state, self.action_to_index[action], reward, next_state, done))
+
+    def remember_batch(self, transition_list, to_win_memory=False):
+        for transition in transition_list:
+            state, action, reward, next_state, done = transition
+            if to_win_memory:
+                self.win_memory.append((state, self.action_to_index[action], reward, next_state, done))
+            else:
+                self.memory.append((state, self.action_to_index[action], reward, next_state, done))
 
     def select_action(self, state):
         # Choose action using epsilon-greedy policy
@@ -119,7 +130,8 @@ class DQNAgent:
             "optimizer_state": self.optimizer.state_dict(),
             "total_episodes": total_episodes,
             "epsilon": self.epsilon,
-            "memory": list(self.memory)  # Convert deque to list for saving
+            "memory": list(self.memory),  # Convert deque to list for saving
+            "win_memory": list(self.win_memory),
         }
         with tqdm(total=100, desc="Saving Progress", unit="step") as pbar:
             with open(filepath, "wb") as f:
@@ -138,5 +150,6 @@ class DQNAgent:
         self.optimizer.load_state_dict(save_data["optimizer_state"])
         self.epsilon = save_data["epsilon"]
         self.memory = deque(save_data["memory"], maxlen=self.memory.maxlen)
+        self.win_memory = deque(save_data["win_memory"], maxlen=self.win_memory.maxlen)
         print(f"[INFO] Model and training state loaded from {filepath}")
         return save_data["total_episodes"]

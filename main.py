@@ -79,6 +79,8 @@ def train_agent(env, agent, episodes):
             current_ladder_reward = decay_shaping_reward(ladder_reward, 0.005, total_episodes)
             current_direction_reward = decay_shaping_reward(correct_direction, 0.005, total_episodes)
 
+        episode_memory = []
+
         while not env.game_over() and timer < 2501:
             # Agent selects an action
             action = agent.select_action(initial_vector_state)
@@ -114,6 +116,9 @@ def train_agent(env, agent, episodes):
                 print(f"initial vectors: {initial_vector_state} post action: {post_action_vector_state} action taken: {chr(action) if action is not None else 'none'} reward: {round(reward, 3) if not contains_nan(reward) else 'NaN'}")
 
             agent.remember(initial_vector_state, action, reward, post_action_vector_state, done)
+
+            episode_memory.append((initial_vector_state, action, reward, post_action_vector_state, done))
+
             initial_vector_state = post_action_vector_state
             initial_game_state = post_action_game_state
 
@@ -130,6 +135,8 @@ def train_agent(env, agent, episodes):
             # Break early if the win reward is achieved
             if reward >= rewards["win"]:
                 # wonned = True
+                if hasattr(agent, "win_memory"):
+                    agent.win_memory.extend(episode_memory)
                 break
 
 

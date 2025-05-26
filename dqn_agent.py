@@ -25,6 +25,7 @@ class DQNAgent:
         self.update_target_model()
 
         self.memory = deque(maxlen=250000)
+        self.win_memory = deque(maxlen=10000)
 
         # Hyperparameters
         self.gamma = 0.99  # Discount factor for future rewards
@@ -59,11 +60,22 @@ class DQNAgent:
         return self.index_to_action[action_index]
 
     def replay(self):
-        if len(self.memory) < self.batch_size:
+        if len(self.memory) + len(self.win_memory) < self.batch_size:
             return
 
+        win_batch_size = int(self.batch_size * 0.3)
+        win_batch_size = min(win_batch_size, len(self.win_memory))
+        normal_batch_size = self.batch_size - win_batch_size
+
         # Sample a batch
-        batch = random.sample(self.memory, self.batch_size)
+        batch = []
+        if normal_batch_size > 0:
+            batch.extend(random.sample(self.memory, normal_batch_size))
+        if win_batch_size > 0:
+            batch.extend(random.sample(self.win_memory, win_batch_size))
+
+
+
         states = torch.from_numpy(np.stack([b[0] for b in batch])).to(self.device)
         next_states = torch.from_numpy(np.stack([b[3] for b in batch])).to(self.device)
         rewards = torch.from_numpy(np.array([b[2] for b in batch], dtype=np.float32)).to(self.device)
